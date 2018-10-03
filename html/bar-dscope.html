@@ -1,0 +1,172 @@
+<!doctype html>
+<html>
+
+<head>
+	<title>Bar Chart Multi Axis</title>
+	<script src="./Chart.bundle.js"></script>
+	<script src="./utils.js"></script>
+	<style>
+	canvas {
+		-moz-user-select: none;
+		-webkit-user-select: none;
+		-ms-user-select: none;
+	}
+	</style>
+</head>
+
+<body>
+	<div style="width: 100%">
+		<canvas id="canvas"></canvas>
+	</div>
+	<button id="randomizeData">Randomize Data</button>
+	<script>
+		Chart.plugins.register({
+		    beforeDraw: function(c){
+		        var ctx = c.chart.ctx;
+		        ctx.fillStyle = "rgba(255, 255, 255, 1)";
+		        ctx.fillRect(0, 0, c.chart.width, c.chart.height);
+		    }
+		});
+		var randomScalingFactor = function() {
+			return Math.round(Math.random() * 100);
+		};
+		var barChartData = {
+			labels: ['デンソー社員', 'Youtuber', '社長', 'サッカー選手', 'ケーキ屋さん', 'モデル', '役者'],
+			datasets: [{
+				label: 'あなたのドリーム',
+//				borderWidth: 1,
+//				borderColor: window.chartColors.red,
+				backgroundColor: [
+					window.chartColors.red,
+					window.chartColors.orange,
+					window.chartColors.yellow,
+					window.chartColors.green,
+					window.chartColors.blue,
+					window.chartColors.purple,
+					window.chartColors.red
+				],
+				data: [
+					randomScalingFactor(),
+					randomScalingFactor(),
+					randomScalingFactor(),
+					randomScalingFactor(),
+					randomScalingFactor(),
+					randomScalingFactor(),
+					randomScalingFactor()
+				]
+			}, {
+				label: '平均的なドリーム',
+				backgroundColor: window.chartColors.grey,
+				data: [
+					10,
+					10,
+					10,
+					10,
+					10,
+					10,
+					10
+				]
+			}]
+
+		};
+		var config = {
+			type: 'horizontalBar',
+			data: barChartData,
+			options: {
+				responsive: true,
+				title: {
+					display: false,
+					text: 'Chart.js Bar Chart - Multi Axis'
+				},
+				legend: {
+					position: 'top',
+					labels: {
+						fontSize: 20
+					}
+				},
+				tooltips: {
+					mode: 'index',
+					intersect: true
+				},
+				scales: {
+					xAxes: [{
+							ticks: {
+								beginAtZero: true
+							}
+					}],
+					yAxes: [{
+							ticks: {
+								autoSkip: false,
+								fontSize: 30
+							}
+					}]
+				}
+			}
+		};
+
+var socket;
+var host = "ws://localhost:6789";
+var packets;
+var strDate;
+var id;
+		window.onload = function() {
+			var mycanvas = document.getElementById('canvas');
+			window.myBar = new Chart(mycanvas, config);
+
+			var savePng = function () {
+				clearTimeout(id);
+				// グラフをPNGへ変換
+				const data = mycanvas.toDataURL("image/png");
+				// PNGと情報をJSON化
+				packets = JSON.stringify({"type":"img","subtype":"bar","date":strDate,data});
+				// WebSocketで送信
+				socket.send(packets);
+//				alert(packets);
+			};
+//			var id = setTimeout(savePng, 2000);
+
+			try{
+				socket = new WebSocket(host);
+
+				socket.onopen = function() {
+				}
+				socket.onmessage = function(msg) {
+//					データ受信
+//					alert(msg.data);
+					obj = JSON.parse(msg.data);
+//					検出結果の場合、グラフ更新して、WebSocket送信
+					if( obj.type=='recog' )
+					{
+						for(let i = 0; i < config.data.labels.length; i++) {
+							config.data.labels[i] = obj.data.rank[i].no;
+							config.data.datasets[0].data[i] = obj.data.rank[i].accuracy * 100;
+						}
+						strDate = obj.data.date;
+						window.myBar.update();
+						id = setTimeout(savePng, 2000);
+					}
+				}
+				socket.onerror = function(e) {
+					alert("error");
+				}
+				socket.onclose = function() {
+					alert("close");
+				}
+
+			} catch(exception){
+			}
+
+		};
+
+		document.getElementById('randomizeData').addEventListener('click', function() {
+			barChartData.datasets.forEach(function(dataset) {
+				dataset.data = dataset.data.map(function() {
+					return randomScalingFactor();
+				});
+			});
+			window.myBar.update();
+		});
+	</script>
+</body>
+
+</html>

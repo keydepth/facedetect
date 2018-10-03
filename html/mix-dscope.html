@@ -1,0 +1,308 @@
+<!doctype html>
+<html>
+
+<head>
+	<title>Radar Chart</title>
+	<script src="./jquery.min.js"></script>
+	<script src="./html2canvas.js"></script>
+	<script src="./Chart.bundle.js"></script>
+	<script src="./utils.js"></script>
+	<style>
+		canvas {
+			-moz-user-select: none;
+			-webkit-user-select: none;
+			-ms-user-select: none;
+		}
+	</style>
+</head>
+
+<body>
+	<table id="html-content-holder" style="width:100%;border-width: 0; background-color: #FFFFFF "><tr>
+	<td style="width:40%">
+	<div>
+		<canvas id="canvasBar"></canvas>
+	</div>
+	</td><td style="width:60%">
+	<div>
+		<canvas id="canvas"></canvas>
+	</div>
+	</td></tr></table>
+    <div id="previewImage">
+
+	<button id="randomizeData">Randomize Data</button>
+	<button id="addDataset">Add Dataset</button>
+	<button id="removeDataset">Remove Dataset</button>
+	<button id="addData">Add Data</button>
+	<button id="removeData">Remove Data</button>
+	<button id="sendData">Send Data</button>
+	<script>
+
+	function dot(matrix1, matrix2){
+	  var res = [];
+	  var row1 = matrix1.length;
+	  var row2 = matrix2.length;
+	  var col1 = matrix1[0].length;
+	  var col2 = matrix2[0].length;
+
+	  for(var i1 = 0; i1 < row1; i1++){
+	    res.push([]);
+	    for(var i2 = 0; i2 < col2; i2++){
+	      res[i1].push(0);
+	      for(var i3 = 0; i3 < col1; i3++){
+		res[i1][i2] += matrix1[i1][i3] * matrix2[i3][i2];
+	      }
+	    }
+	  }
+
+	  return res;
+	}
+		Chart.plugins.register({
+		    beforeDraw: function(c){
+		        var ctx = c.chart.ctx;
+		        ctx.fillStyle = "rgba(255, 255, 255, 1)";
+		        ctx.fillRect(0, 0, c.chart.width, c.chart.height);
+		    }
+		});
+		var randomScalingFactor = function() {
+			return Math.round(Math.random() * 100);
+		};
+
+		var color = Chart.helpers.color;
+		var config = {
+			type: 'radar',
+			data: {
+				labels: ['独自性', '有名度', '財力'],
+				datasets: [{
+					label: 'あなたのドリーム',
+					backgroundColor: color(window.chartColors.red).alpha(0.2).rgbString(),
+					borderColor: window.chartColors.red,
+					pointBackgroundColor: window.chartColors.red,
+					pointRadius: 10,
+					data: [
+						randomScalingFactor(),
+						randomScalingFactor(),
+						randomScalingFactor()
+					]
+				}]
+			},
+			options: {
+				legend: {
+					position: 'top',
+					display: false,
+					labels: {
+						fontSize: 20
+					}
+				},
+				title: {
+					display: false,
+					text: 'Chart.js Radar Chart'
+				},
+				scale: {
+					pointLabels: {
+						display: true,
+						fontSize: 30
+					},
+					ticks: {
+						beginAtZero: true
+					}
+				}
+			}
+		};
+
+		var configBar = {
+			type: 'horizontalBar',
+			data: {
+				labels: ['デンソー社員', 'Youtuber', '社長', 'サッカー選手', 'ケーキ屋さん', 'モデル', '役者'],
+				datasets: [{
+					label: 'あなたのドリーム',
+					backgroundColor: [
+						window.chartColors.red,
+						window.chartColors.orange,
+						window.chartColors.yellow,
+						window.chartColors.green,
+						window.chartColors.blue,
+						window.chartColors.purple,
+						window.chartColors.red
+					],
+					data: [
+						randomScalingFactor(),
+						randomScalingFactor(),
+						randomScalingFactor(),
+						randomScalingFactor(),
+						randomScalingFactor(),
+						randomScalingFactor(),
+						randomScalingFactor()
+					]
+				}]
+			},
+			options: {
+				legend: {
+					position: 'top',
+					display: false,
+					labels: {
+						fontSize: 20
+					}
+				},
+				title: {
+					display: false,
+					text: 'Chart.js Radar Chart'
+				},
+				tooltips: {
+					mode: 'index',
+					intersect: true
+				},
+				scales: {
+					xAxes: [{
+							ticks: {
+								beginAtZero: true
+							}
+					}],
+					yAxes: [{
+							ticks: {
+								autoSkip: false,
+								fontSize: 20
+							}
+					}]
+				}
+			}
+		};
+
+var socket;
+var host = "ws://localhost:6789";
+var packets;
+var strDate;
+var id;
+var element = $("#html-content-holder"); // 画像化したい要素をセレクタに指定
+var getCanvas; 
+		window.onload = function() {
+			mycanvas = document.getElementById('canvas');
+			mycanvasBar = document.getElementById('canvasBar');
+			window.myRadar = new Chart(mycanvas, config);
+			window.myBar = new Chart(mycanvasBar, configBar);
+			var savePng = function () {
+				clearTimeout(id);
+
+				html2canvas(element, {
+				onrendered: function (canvas) {
+						$("#previewImage").append(canvas);
+						getCanvas = canvas;
+						// グラフをPNGへ変換
+						const data = getCanvas.toDataURL("image/png");
+						// PNGと情報をJSON化
+						packets = JSON.stringify({"type":"img","subtype":"mix","date":strDate,data});
+						// WebSocketで送信
+						socket.send(packets);
+		//				alert(packets);
+		             }
+		         });
+
+			};
+//			var id = setTimeout(savePng, 2000);
+
+			try{
+				socket = new WebSocket(host);
+
+				socket.onopen = function() {
+				}
+				socket.onmessage = function(msg) {
+//					データ受信
+//					alert(msg.data);
+					obj = JSON.parse(msg.data);
+//					検出結果の場合、グラフ更新して、WebSocket送信
+					if( obj.type=='recog' )
+					{
+						for(let i = 0; i < config.data.labels.length; i++) {
+//							config.data.labels[i] = obj.data.rank[i].no;
+//							config.data.datasets[0].data[i] = obj.data.rank[i].accuracy * 100;
+							config.data.datasets[0].data[i] = obj.data.dream[i] * 100;
+						}
+						window.myRadar.update();
+
+						for(let i = 0; i < configBar.data.labels.length; i++) {
+							configBar.data.labels[i] = obj.data.rank[i].no;
+							configBar.data.datasets[0].data[i] = obj.data.rank[i].accuracy * 100;
+						}
+						strDate = obj.data.date;
+						window.myBar.update();
+
+						id = setTimeout(savePng, 2000);
+					}
+				}
+				socket.onerror = function(e) {
+					alert("error");
+				}
+				socket.onclose = function() {
+					alert("close");
+				}
+
+			} catch(exception){
+			}
+
+		};
+
+		document.getElementById('randomizeData').addEventListener('click', function() {
+			config.data.datasets.forEach(function(dataset) {
+				dataset.data = dataset.data.map(function() {
+					return randomScalingFactor();
+				});
+			});
+
+			window.myRadar.update();
+		});
+
+		var colorNames = Object.keys(window.chartColors);
+		document.getElementById('addDataset').addEventListener('click', function() {
+			var colorName = colorNames[config.data.datasets.length % colorNames.length];
+			var newColor = window.chartColors[colorName];
+
+			var newDataset = {
+				label: 'Dataset ' + config.data.datasets.length,
+				borderColor: newColor,
+				backgroundColor: color(newColor).alpha(0.2).rgbString(),
+				pointBorderColor: newColor,
+				data: [],
+			};
+
+			for (var index = 0; index < config.data.labels.length; ++index) {
+				newDataset.data.push(randomScalingFactor());
+			}
+
+			config.data.datasets.push(newDataset);
+			window.myRadar.update();
+		});
+
+		document.getElementById('addData').addEventListener('click', function() {
+			if (config.data.datasets.length > 0) {
+				config.data.labels.push('dataset #' + config.data.labels.length);
+
+				config.data.datasets.forEach(function(dataset) {
+					dataset.data.push(randomScalingFactor());
+				});
+
+				window.myRadar.update();
+			}
+		});
+
+		document.getElementById('removeDataset').addEventListener('click', function() {
+			config.data.datasets.splice(0, 1);
+			window.myRadar.update();
+		});
+
+		document.getElementById('removeData').addEventListener('click', function() {
+			config.data.labels.pop(); // remove the label first
+
+			config.data.datasets.forEach(function(dataset) {
+				dataset.data.pop();
+			});
+
+			window.myRadar.update();
+		});
+
+		document.getElementById('sendData').addEventListener('click', function() {
+			socket.send(packets);
+		});
+
+	</script>
+</body>
+
+</html>
