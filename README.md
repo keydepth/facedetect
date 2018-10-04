@@ -1,42 +1,53 @@
-WebƒJƒƒ‰‚ÅB‰e‚µ(cƒL[)APNG‚ğtarget_image‚Ö•Û‘¶A„˜_+ƒhƒŠ[ƒ€‚Ìƒ}ƒgƒŠƒbƒNƒX‰‰Z‚ğÀ{¨CSV(log.csv),JSON(•W€o—Í+WebSocket)‚Öo—Í¨WebSocketServer¨HTML‚Öƒf[ƒ^‘—M¨ƒOƒ‰ƒt‚ğ•\¦‚µ‚ÄPNG‰æ‘œ‚ğWebSocketServer‚Ö‘—M¨ƒOƒ‰ƒt‚ğ•Û‘¶(PNG)
+D-scope  
+Face to Dream converter
+====
+
+é¡”ã‚’å«ã‚€ç”»åƒã‚’å…ƒã«äº‹å‰å­¦ç¿’ã—ãŸäººç‰©ã¨ã®ä¸€è‡´æ€§ã‚’è¨ˆç®—ã—ã¾ã™ã€‚
+çµæœã‚’å…ƒã«ã€ãƒ‰ãƒªãƒ¼ãƒ å€¤(ç‹¬è‡ªæ€§ã€æœ‰ååº¦ã€è²¡åŠ›)ã‚’æ±‚ã‚ã€çµæœã‚’ã‚°ãƒ©ãƒ•(png)ã§å‡ºåŠ›ã—ã¾ã™ã€‚
+
+
+## Description
+
+Webã‚«ãƒ¡ãƒ©ã§æ’®å½±ã—(cã‚­ãƒ¼)ã€PNGã‚’target_imageã¸ä¿å­˜ã€æ¨è«–+ãƒ‰ãƒªãƒ¼ãƒ ã®ãƒãƒˆãƒªãƒƒã‚¯ã‚¹æ¼”ç®—ã‚’å®Ÿæ–½â†’CSV(log.csv),JSON(æ¨™æº–å‡ºåŠ›+WebSocket)ã¸å‡ºåŠ›â†’WebSocketServerâ†’HTMLã¸ãƒ‡ãƒ¼ã‚¿é€ä¿¡â†’ã‚°ãƒ©ãƒ•ã‚’è¡¨ç¤ºã—ã¦PNGç”»åƒã‚’WebSocketServerã¸é€ä¿¡â†’ã‚°ãƒ©ãƒ•ã‚’ä¿å­˜(PNG)
 2018/10/03
-EƒOƒ‰ƒt‚ÆƒŒ[ƒ_ƒ`ƒƒ[ƒg‚ğ“‡
+ãƒ»ã‚°ãƒ©ãƒ•ã¨ãƒ¬ãƒ¼ãƒ€ãƒãƒ£ãƒ¼ãƒˆã‚’çµ±åˆ
 
-g‚¢•û(ˆÈ‰º‚ÌƒRƒ}ƒ“ƒh)
-A.ƒVƒXƒeƒ€—§‚¿ã‚°‚Ìê‡
+## Usage ä½¿ã„æ–¹(ä»¥ä¸‹ã®ã‚³ãƒãƒ³ãƒ‰)
+
+A.ã‚·ã‚¹ãƒ†ãƒ ç«‹ã¡ä¸Šã’ã®å ´åˆ
 > ./00run.sh 
-WebSocketServer‚ğ—§‚¿ã‚°AHTML‚ğ•\¦‚µAWebƒJƒƒ‰‚ğg—p‚µ‚ÄŠç”F¯‚ğ‚µ‚Ü‚·B
+WebSocketServerã‚’ç«‹ã¡ä¸Šã’ã€HTMLã‚’è¡¨ç¤ºã—ã€Webã‚«ãƒ¡ãƒ©ã‚’ä½¿ç”¨ã—ã¦é¡”èªè­˜ã‚’ã—ã¾ã™ã€‚
 
-B.ŒÂ•Ê‚ÉŠç”F¯—§‚¿ã‚°‚Ìê‡
-WebƒJƒƒ‰‚ğg—p‚·‚éê‡AWindowsã‚ÅƒJƒƒ‰‚ğ‹–‰Â‚·‚éAVirtualBox‚ÅWebƒJƒƒ‰‚ğ—LŒø‰»‚·‚éB
+B.å€‹åˆ¥ã«é¡”èªè­˜ç«‹ã¡ä¸Šã’ã®å ´åˆ
+Webã‚«ãƒ¡ãƒ©ã‚’ä½¿ç”¨ã™ã‚‹å ´åˆã€Windowsä¸Šã§ã‚«ãƒ¡ãƒ©ã‚’è¨±å¯ã™ã‚‹ã€VirtualBoxã§Webã‚«ãƒ¡ãƒ©ã‚’æœ‰åŠ¹åŒ–ã™ã‚‹ã€‚
 > python3 ./bin/06test-o.py
-‰æ‘œƒtƒ@ƒCƒ‹‚ğg—p‚·‚éê‡
+ç”»åƒãƒ•ã‚¡ã‚¤ãƒ«ã‚’ä½¿ç”¨ã™ã‚‹å ´åˆ
 > python3 ./bin/06test-o.py ./bin/my_model-n56-epoch17.h5 ./target_image/20180929_064525.png 
 
-CSVƒƒO•Û‘¶æ
+CSVãƒ­ã‚°ä¿å­˜å…ˆ
 ./log
 
-‰æ‘œ•Û‘¶æ
+ç”»åƒä¿å­˜å…ˆ
 ./target_image
 
-ŠÂ‹«
-VirtualBox 5.2.16 r123759 (Qt5.6.2)
-Ubuntu 18.04 desktop
-OpenCV 3.4.2
-Python 3.6.5
-Keras==2.2.2
-Keras-Applications==1.0.4
-Keras-Preprocessing==1.0.2
-opencv-contrib-python==3.4.2.17
-opencv-python==3.4.2.17
-tensorflow==1.10.1
-websocket-client==0.53.0
-websocket-server==0.4
-numpy==1.14.5
-h5py==2.8.0
-WebƒJƒƒ‰
+## Environments ç’°å¢ƒ  
 
-Webƒuƒ‰ƒEƒU(firefox) 62.0 (64 ƒrƒbƒg)
+VirtualBox 5.2.16 r123759 (Qt5.6.2)  
+Ubuntu 18.04 desktop  
+OpenCV 3.4.2  
+Python 3.6.5  
+Keras==2.2.2  
+Keras-Applications==1.0.4  
+Keras-Preprocessing==1.0.2  
+opencv-contrib-python==3.4.2.17  
+opencv-python==3.4.2.17  
+tensorflow==1.10.1  
+websocket-client==0.53.0  
+websocket-server==0.4  
+numpy==1.14.5  
+h5py==2.8.0  
+Webã‚«ãƒ¡ãƒ©  
+Webãƒ–ãƒ©ã‚¦ã‚¶(firefox) 62.0 (64 ãƒ“ãƒƒãƒˆ)  
 
 
 
@@ -44,13 +55,13 @@ Webƒuƒ‰ƒEƒU(firefox) 62.0 (64 ƒrƒbƒg)
 #sudo pip3 install websocket-server
 #sudo pip3 install websocket-client
 
-dscope-system2.png‚ÌÔ˜g+—Î˜g‚Ü‚ÅÀ{
+dscope-system2.pngã®èµ¤æ +ç·‘æ ã¾ã§å®Ÿæ–½
 
 06test-o.py
-“à‚Ì
+å†…ã®
 tcpsend=False
-‚ğ
+ã‚’
 tcpsend=True
-‚É‚·‚é‚±‚Æ‚ÅASocket‚Åƒf[ƒ^‚ğ‘—•t‚µ‚Ü‚·B
+ã«ã™ã‚‹ã“ã¨ã§ã€Socketã§ãƒ‡ãƒ¼ã‚¿ã‚’é€ä»˜ã—ã¾ã™ã€‚
 
 
