@@ -24,11 +24,21 @@ Webカメラを使用する場合、Windows上でカメラを許可する、Virt
 画像ファイルを使用する場合
 > python3 ./bin/06test-o.py ./bin/my_model-n56-epoch17.h5 ./target_image/20180929_064525.png 
 
-CSVログ保存先
-./log
+dream matrix  
+./bin/matrix.csv  
+フォーマット  
+#独自性A, 有名度B, 財力C, 出力重みW, ラベル  
+0.5, 0.5, 0.5, 1.0, 1デンソー社員  
 
-画像保存先
-./target_image
+dream計算方法  
+59人分の結果に出力重みwをかけて、dreamの3変数に内積を求める  
+dream(3)=(results(59)*w(59)) dot matrixABC(3,59)
+
+CSVログ保存先  
+./log  
+
+画像保存先  
+./target_image  
 
 ## Environments 環境  
 
