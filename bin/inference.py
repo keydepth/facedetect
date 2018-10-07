@@ -41,6 +41,10 @@ facedetect='./bin/haarcascade_frontalface_alt.xml'
 # モデル読み込み
 model = load_model(h5File)
 
+
+# 出力重み
+weights=[]
+
 # グラフ表示ラベル
 labels=['1デンソー社員','2小学校教師','3高校教師','4アナウンサー','5美容師','6演劇(脚本)','7演劇(役者)','8演劇(役者)','9演劇(役者)','10演劇(役者)','11デンソー社員','12ケーキ屋','13デザイナー','14テニスプレイヤ','15テニスプレイヤ','16ケーキ屋','17デザイナー','18医師','19デンソー社員','20看護師','21臨床検査','22臨床検査','23医師','24看護師','25看護師','26放射線技師','27薬剤師','28臨床検査技師','29放射線技師','30臨床検査技師','31薬剤師','32看護師','33放射線技師','34放射線技師','35薬剤師','36放射線技師','37臨床検査技師','38看護師','39看護師','40看護師','41看護師','42臨床検査技師','43社長','44警察官','45トヨタ社員','46アイシン社員','47アイシン社員','48政治家','49プロ野球選手','50プロ野球選手','51プロ野球選手','52プロサッカー選手','53プロサッカー選手','54プロサッカー選手','55ユーチューバー','56ユーチューバー']
 
@@ -116,9 +120,10 @@ def loadMatrix():
 		i = 0
 		for row in reader:
 #			print(row)          # 1行づつ取得できる
-			matTable[i,0] = float(row[0])*float(row[3])
-			matTable[i,1] = float(row[1])*float(row[3])
-			matTable[i,2] = float(row[2])*float(row[3])
+			matTable[i,0] = float(row[0])
+			matTable[i,1] = float(row[1])
+			matTable[i,2] = float(row[2])
+			weights.append( float(row[3]) )
 			labels[i] = row[4].strip()
 			i+=1
 
@@ -128,6 +133,7 @@ def loadMatrix():
 loadMatrix()
 #print(matTable)
 #print(labels)
+#print(weights)
 
 
 
@@ -187,6 +193,10 @@ def detect_who(img,image,x,y,w,h):
     nameNumLabel=model.predict(img)[0]
 
     matRecog = nameNumLabel
+    i=0
+    for w in weights:
+        matRecog[i] *= w
+        i+=1
     dream = np.dot(matRecog, matTable).tolist()[0]
 #    print(dream.tolist())
 
