@@ -1,3 +1,6 @@
+#!/usr/bin/env python
+# -*- encoding:utf-8 -*-
+
 import random
 from keras.utils.np_utils import to_categorical
 import os
@@ -17,14 +20,28 @@ import socket
 import json
 import websocket
 from websocket import create_connection
+import csv
 
 tcpsend=False
 address = ('localhost', 12345)
 max_size = 10000
 
-websocketsend=True
+websocketsend=False
 websocketaddress = "ws://localhost:6789/"
 
+logfile='./log/log.csv'
+targetpath='./target_image/'
+targetexp='png'
+#h5File='./bin/my_model-epoch20.h5'
+#h5File='./bin/my_model-n19-epoch25.h5'
+#h5File='./bin/my_model-n44-epoch17.h5'
+h5File='./bin/my_model-n56-epoch17.h5'
+facedetect='./bin/haarcascade_frontalface_alt.xml'
+
+# モデル読み込み
+model = load_model(h5File)
+
+# グラフ表示ラベル
 labels=['1デンソー社員','2小学校教師','3高校教師','4アナウンサー','5美容師','6演劇(脚本)','7演劇(役者)','8演劇(役者)','9演劇(役者)','10演劇(役者)','11デンソー社員','12ケーキ屋','13デザイナー','14テニスプレイヤ','15テニスプレイヤ','16ケーキ屋','17デザイナー','18医師','19デンソー社員','20看護師','21臨床検査','22臨床検査','23医師','24看護師','25看護師','26放射線技師','27薬剤師','28臨床検査技師','29放射線技師','30臨床検査技師','31薬剤師','32看護師','33放射線技師','34放射線技師','35薬剤師','36放射線技師','37臨床検査技師','38看護師','39看護師','40看護師','41看護師','42臨床検査技師','43社長','44警察官','45トヨタ社員','46アイシン社員','47アイシン社員','48政治家','49プロ野球選手','50プロ野球選手','51プロ野球選手','52プロサッカー選手','53プロサッカー選手','54プロサッカー選手','55ユーチューバー','56ユーチューバー']
 
 # 学習データのパラメータテーブル
@@ -89,15 +106,29 @@ matTable = np.matrix([
 
 ])
 
+csvmatrixfile='./bin/matrix.csv'
 
-logfile='./log/log.csv'
-targetpath='./target_image/'
-targetexp='png'
-#h5File='./bin/my_model-epoch20.h5'
-#h5File='./bin/my_model-n19-epoch25.h5'
-#h5File='./bin/my_model-n44-epoch17.h5'
-h5File='./bin/my_model-n56-epoch17.h5'
-facedetect='./bin/haarcascade_frontalface_alt.xml'
+# Matrix(csv)の読み込み
+def loadMatrix():
+	with open(csvmatrixfile, 'r') as f:
+		reader = csv.reader(f)
+		header = next(reader)  # ヘッダーを読み飛ばしたい時
+		i = 0
+		for row in reader:
+#			print(row)          # 1行づつ取得できる
+			matTable[i,0] = float(row[0])*float(row[3])
+			matTable[i,1] = float(row[1])*float(row[3])
+			matTable[i,2] = float(row[2])*float(row[3])
+			labels[i] = row[4].strip()
+			i+=1
+
+#print(matTable)
+#print(labels)
+# マトリックスの読み込み
+loadMatrix()
+#print(matTable)
+#print(labels)
+
 
 
 def detect_face(image,imageOrg,detect):
@@ -122,7 +153,7 @@ def detect_face(image,imageOrg,detect):
             img=np.expand_dims(img,axis=0)
             name = ''
             if detect==True:
-                name = detect_who(img,imageOrg,int(x),int(y),int(width),int(height))
+                name = detect_who(img,imageOrg,int(x),int(y),int(width),int(height))['top']
                 detecf_exec=True
             cv2.putText(image,name,(x,y+height+20),cv2.FONT_HERSHEY_DUPLEX,1,(255,0,0),2)
     #顔が検出されなかった時
@@ -139,17 +170,17 @@ def detect_face(image,imageOrg,detect):
             img = image[rect[1]:rect[1]+rect[3],rect[0]:rect[0]+rect[2]]
             img = cv2.resize(img,(64,64))
             img=np.expand_dims(img,axis=0)
-            name = detect_who(img,imageOrg,rect[0],rect[1],rect[2],rect[3])
+            name = detect_who(img,imageOrg,rect[0],rect[1],rect[2],rect[3])['top']
     return image
 
 
 
 def detect_who(img,image,x,y,w,h):
-    print([x,y,w,h])
+#    print([x,y,w,h])
     logdate = datetime.now()
     strDate = logdate.strftime("%Y%m%d_%H%M%S")
     ImageFile=targetpath+strDate+'.'+targetexp
-    print('#### image output = .'+ImageFile)
+#    print('#### image output = .'+ImageFile)
     cv2.imwrite(ImageFile,image)
     #予測
     name=""
@@ -172,7 +203,7 @@ def detect_who(img,image,x,y,w,h):
     result['top']=result['rank'][0]['no']
     result['dream']=dream
     result['rect']=[x,y,w,h]
-    print(result)
+#    print(result)
     with open(logfile,'a') as f:
         writer = csv.writer(f)
         f.write(logdate.strftime("%Y/%m/%d %H:%M:%S, "))
@@ -195,100 +226,108 @@ def detect_who(img,image,x,y,w,h):
 #        rc =  ws.recv()
 #        print("Received '%s'" % rc)
         ws.close()
-    return result['top']
+    return result
+
+# image:imreadした画像
+def predict(imageOrg):
+	b,g,r = cv2.split(imageOrg)
+	imageRGB = cv2.merge([r,g,b])
+	imageExpand = np.expand_dims(imageRGB,axis=0)
+	return detect_who(imageExpand,imageOrg,0,0,64,64)
 
 
-argv = sys.argv
-argc = len(argv)
-if (argc > 3):
-    #引数がちゃんとあるかチェック
-    #正しくなければメッセージを出力して終了
-    print('Usage: python3 %s [h5File] [imageFile]' % argv[0])
-    print('Example: python3  %s ./bin/my_model-n19-epoch25.h5 ./target_image/20180929_064525.png' % argv[0])
-    quit()
+if __name__ == '__main__': #pyを実行すると以下が実行される（モジュールとして読み込んだ場合は実行されない）
+	argv = sys.argv
+	argc = len(argv)
+	if (argc > 3):
+	    #引数がちゃんとあるかチェック
+	    #正しくなければメッセージを出力して終了
+	    print('Usage: python3 %s [h5File] [imageFile]' % argv[0])
+	    print('Example: python3  %s ./bin/my_model-n19-epoch25.h5 ./target_image/20180929_064525.png' % argv[0])
+	    quit()
 
-if (argc >= 2):
-    h5File=argv[1]
-model = load_model(h5File)
+	if (argc >= 2):
+	    h5File=argv[1]
+	model = load_model(h5File)
 
-JPGFile=''
-if (argc >= 3):
-    JPGFile=argv[2]
+	JPGFile=''
+	if (argc >= 3):
+	    JPGFile=argv[2]
 
-# 画像指定があれば、その画像で検出して終了
-if JPGFile!='':
-	image=cv2.imread(JPGFile)
-	image_for_result = image.copy()
+	# 画像指定があれば、その画像で検出して終了
+	if JPGFile!='':
+		image=cv2.imread(JPGFile)
+		image_for_result = image.copy()
 
-	if image is None:
-		print("Not open:")
+		if image is None:
+			print("Not open:")
+			quit()
+		b,g,r = cv2.split(image)
+		image = cv2.merge([r,g,b])
+		whoImage=detect_face(image,image_for_result,True)
 		quit()
-	b,g,r = cv2.split(image)
-	image = cv2.merge([r,g,b])
-	whoImage=detect_face(image,image_for_result,True)
-	quit()
 
-# open a pointer to the video stream thread and allow the buffer to
-# start to fill, then start the FPS counter
-print("[INFO] starting the video stream and FPS counter...")
-vs = VideoStream(0).start()
-time.sleep(1)
-fps = FPS()
-fps.start()
+	# open a pointer to the video stream thread and allow the buffer to
+	# start to fill, then start the FPS counter
+	print("[INFO] starting the video stream and FPS counter...")
+	vs = VideoStream(0).start()
+	time.sleep(1)
+	fps = FPS()
+	fps.start()
 
-# loop over frames from the video file stream
-det=False
-while True:
-	try:
-		key = cv2.waitKey(1) & 0xFF
+	# loop over frames from the video file stream
+	det=False
+	while True:
+		try:
+			key = cv2.waitKey(1) & 0xFF
 
-		# if the `q` key was pressed, break from the loop
-		if key == ord("q"):
+			# if the `q` key was pressed, break from the loop
+			if key == ord("q"):
+				break
+
+			det=False
+			if key == ord("c"):
+				det=True
+
+			# grab the frame from the threaded video stream
+			# make a copy of the frame and resize it for display/video purposes
+			frame = vs.read()
+			image_for_result = frame.copy()
+			# flip
+			image_for_result = cv2.flip(image_for_result, 1)
+
+			# detect
+			b,g,r = cv2.split(image_for_result)
+			image = cv2.merge([r,g,b])
+			whoImage=detect_face(image,image_for_result,det)
+
+			r,g,b = cv2.split(whoImage)
+			whoImage = cv2.merge([b,g,r])
+
+			cv2.imshow("Output", whoImage)
+
+			# update the FPS counter
+			fps.update()
+		
+		# if "ctrl+c" is pressed in the terminal, break from the loop
+		except KeyboardInterrupt:
 			break
 
-		det=False
-		if key == ord("c"):
-			det=True
+		# if there's a problem reading a frame, break gracefully
+		except AttributeError:
+			break
 
-		# grab the frame from the threaded video stream
-		# make a copy of the frame and resize it for display/video purposes
-		frame = vs.read()
-		image_for_result = frame.copy()
-		# flip
-		image_for_result = cv2.flip(image_for_result, 1)
+	# stop the FPS counter timer
+	fps.stop()
 
-		# detect
-		b,g,r = cv2.split(image_for_result)
-		image = cv2.merge([r,g,b])
-		whoImage=detect_face(image,image_for_result,det)
+	# destroy all windows if we are displaying them
+	cv2.destroyAllWindows()
 
-		r,g,b = cv2.split(whoImage)
-		whoImage = cv2.merge([b,g,r])
+	# stop the video stream
+	vs.stop()
 
-		cv2.imshow("Output", whoImage)
-
-		# update the FPS counter
-		fps.update()
-	
-	# if "ctrl+c" is pressed in the terminal, break from the loop
-	except KeyboardInterrupt:
-		break
-
-	# if there's a problem reading a frame, break gracefully
-	except AttributeError:
-		break
-
-# stop the FPS counter timer
-fps.stop()
-
-# destroy all windows if we are displaying them
-cv2.destroyAllWindows()
-
-# stop the video stream
-vs.stop()
-
-# display FPS information
-print("[INFO] elapsed time: {:.2f}".format(fps.elapsed()))
-print("[INFO] approx. FPS: {:.2f}".format(fps.fps()))
+	# display FPS information
+	print("[INFO] elapsed time: {:.2f}".format(fps.elapsed()))
+	print("[INFO] approx. FPS: {:.2f}".format(fps.fps()))
 
 
