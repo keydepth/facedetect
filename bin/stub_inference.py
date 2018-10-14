@@ -3,10 +3,13 @@
 
 import inference
 import cv2
+import numpy as np
 
 
 image = cv2.imread('./test_data/0.jpg')
 image = cv2.resize(image, (64, 64))
+
+# np.save('test_inference.npy', image)
 
 result = inference.predict(image)
 
