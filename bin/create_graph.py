@@ -10,10 +10,15 @@ from matplotlib.path import Path
 from matplotlib.spines import Spine
 from matplotlib.projections.polar import PolarAxes
 from matplotlib.projections import register_projection
-
+from matplotlib import rcParams
 
 BAR_IMG = 'bar.png'
 RADAR_IMG = 'radar.png'
+GRAPH_SIZE = (6, 6)
+
+# rcParams['font.family'] = 'ipagp.tttf'
+
+# fp = FontProperties(fname=r'/Users/iwasa/font/IPAfont00303/ipag.ttf')
 
 
 def radar_factory(num_vars, frame='circle'):
@@ -117,7 +122,7 @@ def create_bar(rank_data):
 	x_tmp = range(len(x))
 
 	# 棒グラフを作成する。
-	fig_bar, ax_bar = plt.subplots(figsize=(4, 4))
+	fig_bar, ax_bar = plt.subplots(figsize=GRAPH_SIZE)
 	# ax_bar = fig.add_subplot(figsize=(4, 4))
 	# ax_bar.barh(x_tmp, y)
 	# ax_bar.(x_tmp, x)
@@ -146,7 +151,7 @@ def create_radarchart(dream_data):
 	spoke_labels = ['kosei', 'yumei', 'zairyoku']
 	color = 'b'
 
-	fig, ax = plt.subplots(figsize=(5, 5), subplot_kw=dict(projection='radar'))
+	fig, ax = plt.subplots(figsize=GRAPH_SIZE, subplot_kw=dict(projection='radar'))
 	# ax = fig.add_subplot(figsize=(5, 5), subplot_kw=dict(projection='radar'))
 	fig.subplots_adjust(wspace=0.25, hspace=0.20, top=0.85, bottom=0.05)
 	#  chartの範囲
@@ -178,8 +183,8 @@ def create_graph(result):
 	bar_img = cv2.imread(BAR_IMG)
 	radar_img = cv2.imread(RADAR_IMG)
 
-	print(bar_img.shape)
-	print(radar_img.shape)
+	# print(bar_img.shape)
+	# print(radar_img.shape)
 	# cv2.imwrite('test_bar.png', bar_img)
 	concat_img = cv2.hconcat([bar_img, cv2.resize(radar_img, bar_img.shape[:2])])
 
