@@ -12,8 +12,8 @@ from matplotlib.projections.polar import PolarAxes
 from matplotlib.projections import register_projection
 
 
-BAR_IMG = 'bar.jpg'
-RADAR_IMG = 'radar.jpg'
+BAR_IMG = 'bar.png'
+RADAR_IMG = 'radar.png'
 
 
 def radar_factory(num_vars, frame='circle'):
@@ -178,9 +178,12 @@ def create_graph(result):
 	bar_img = cv2.imread(BAR_IMG)
 	radar_img = cv2.imread(RADAR_IMG)
 
-	concat_img = cv2.vconcat([bar_img, radar_img])
+	print(bar_img.shape)
+	print(radar_img.shape)
+	# cv2.imwrite('test_bar.png', bar_img)
+	concat_img = cv2.hconcat([bar_img, cv2.resize(radar_img, bar_img.shape[:2])])
 
-	cv2.imwrite('concat.jpg', concat_img)
+	cv2.imwrite('concat.png', concat_img)
 
 
 if __name__ == '__main__':
