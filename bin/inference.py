@@ -301,7 +301,6 @@ if __name__ == '__main__': #pyを実行すると以下が実行される（モ�
 	app.run(port=50100, debug=False)
 
 
-
 	# argv = sys.argv
 	# argc = len(argv)
 	# if (argc > 3):
