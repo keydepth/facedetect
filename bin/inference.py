@@ -197,7 +197,18 @@ def detect_face(image,imageOrg,detect):
             name = detect_who(img,imageOrg,rect[0],rect[1],rect[2],rect[3])['top']
     return image
 
-
+def get_rank_index(my_array):
+    # 上位件数
+    K = 3
+    # ソートはされていない上位k件のインデックス
+    unsorted_max_indices = np.argpartition(-my_array, K)[:K]
+    # 上位k件の値
+    y = my_array[unsorted_max_indices]
+    # 大きい順にソートし、インデックスを取得
+    indices = np.argsort(-y)
+    # 類似度上位k件のインデックス
+    max_k_indices = unsorted_max_indices[indices]
+    return max_k_indices
 
 def detect_who(img,image,x,y,w,h):
 #    print([x,y,w,h])
@@ -212,12 +223,20 @@ def detect_who(img,image,x,y,w,h):
     name=""
     # K.clear_session()
     nameNumLabel=model.predict(img)[0]
+    # 上位のindexを取得する
+    rank_index = get_rank_index(nameNumLabel)
 
     matRecog = nameNumLabel
     i=0
     for w in weights:
-        matRecog[i] *= w
+        if i in rank_index:
+            matRecog[i] *= w
+        else:
+            matRecog[i] *= 0
         i+=1
+    # 正規化(sum(matRecog)=1)
+    matRecog /= sum(matRecog)
+#    print(matRecog)
     dream = np.dot(matRecog, matTable).tolist()[0]
 #    print(dream.tolist())
 
