@@ -317,7 +317,8 @@ def facedetect():
 
 
 if __name__ == '__main__': #pyを実行すると以下が実行される（モジュールとして読み込んだ場合は実行されない）
-	app.run(port=50100, debug=False)
+	# app.run(port=50100, debug=False)
+	app.run(host='0.0.0.0', port=50100, debug=False)
 
 
 	# argv = sys.argv
