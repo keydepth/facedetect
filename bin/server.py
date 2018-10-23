@@ -2,12 +2,30 @@
 # -*- encoding:utf-8 -*-
 
 
+import numpy as np
+import io
+import os
+
 import inference
 import create_graph
 from flask import Flask, request, jsonify
+from werkzeug.utils import secure_filename
 
+import cv2
 
 app = Flask(__name__)
+
+
+UPLOAD_FOLDER = './uploads'
+ALLOWED_EXTENSIONS = set(['png', 'jpg', 'PNG', 'JPG'])
+IMAGE_WIDTH = 640
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+app.config['SECRET_KEY'] = os.urandom(24)
+
+
+def allowed_file(filename):
+    return '.' in filename and \
+        filename.rsplit('.', 1)[1] in ALLOWED_EXTENSIONS
 
 
 @app.route('/facedetect', methods=['POST'])
@@ -16,27 +34,36 @@ def facedetect():
 		'status': 'NG'
 	}
 
-	# get image data from RPi
-	image = request.form['image']
+	# get image data from RPi by cv2.imread
+	img_file = request.files['img_file']
+
+	# 変なファイル弾き
+	if img_file and allowed_file(img_file.filename):
+		filename = secure_filename(img_file.filename)
+	else:
+		return ''' <p>許可されていない拡張子です</p> '''
+
+	# BytesIOで読み込んでOpenCVで扱える型にする
+	f = img_file.stream.read()
+	bin_data = io.BytesIO(f)
+	file_bytes = np.asarray(bytearray(bin_data.read()), dtype=np.uint8)
+	img = cv2.imdecode(file_bytes, cv2.IMREAD_COLOR)
 
 	# ニューラルネットによる推論結果を取得 ##############
-	predict_result = inference.predict(image)
-	# predict_resultのイメージ
-	# {'status': 'OK',		# 'OK' or 'NG'
-	#  'data': {'date': '20180929_171203', 'list': [0.03684283420443535, 0.03800936043262482, 0.02651863358914852, 0.015608073212206364, 0.024989087134599686, 0.0308738574385643, 0.01939229480922222, 0.026615887880325317, 0.0351942740380764, 0.046588167548179626, 0.09860555082559586, 0.20099063217639923, 0.022021153941750526, 0.09454210102558136, 0.05241763964295387, 0.049437906593084335, 0.05118785798549652, 0.0604083351790905, 0.06975629180669785], 'rank': [{'no': '12ケーキ屋', 'accuracy': 0.20099063217639923}, {'no': '11デンソー社員', 'accuracy': 0.09860555082559586}, {'no': '14テニスプレイヤ', 'accuracy': 0.09454210102558136}, {'no': '19デンソー社員', 'accuracy': 0.06975629180669785}, {'no': '18医師', 'accuracy': 0.0604083351790905}, {'no': '15テニスプレイヤ', 'accuracy': 0.05241763964295387}, {'no': '17デザイナー', 'accuracy': 0.05118785798549652}, {'no': '16ケーキ屋', 'accuracy': 0.049437906593084335}, {'no': '10演劇(役者)', 'accuracy': 0.046588167548179626}, {'no': '2小学校教師', 'accuracy': 0.03800936043262482}, {'no': '1デンソー社員', 'accuracy': 0.03684283420443535}, {'no': '9演劇(役者)', 'accuracy': 0.0351942740380764}, {'no': '6演劇(脚本)', 'accuracy': 0.0308738574385643}, {'no': '8演劇(役者)', 'accuracy': 0.026615887880325317}, {'no': '3高校教師', 'accuracy': 0.02651863358914852}, {'no': '5美容師', 'accuracy': 0.024989087134599686}, {'no': '13デザイナー', 'accuracy': 0.022021153941750526}, {'no': '7演劇(役者)', 'accuracy': 0.01939229480922222}, {'no': '4アナウンサー', 'accuracy': 0.015608073212206364}], 'top': '12ケーキ屋', 'rect': [60, 49, 88, 88]}
-	#  }
+	# image = cv2.imread(img)
+	img = cv2.resize(img, (64, 64))
+
+	#np.save('test_server.npy', image)
+
+	predict_result = inference.predict(img)
+	output['status'] = 'OK'
+	output['rank'] = predict_result['rank']
 
 	# predict_result をつかったグラフ生成
-	graph_result = create_graph.create(predict_result)
-	
-	output = {
-		'status': 'NG',
-		'rank': [],
-		'graph': graph_result
-	}
+	#graph_result = create_graph.create(predict_result)
 
 	return jsonify(output)
 
 
 if __name__ == '__main__':
-	app.run(port=50100)
+	app.run(port=50100, debug=False)

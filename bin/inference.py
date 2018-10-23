@@ -1,26 +1,26 @@
 #!/usr/bin/env python
 # -*- encoding:utf-8 -*-
 
-import random
-from keras.utils.np_utils import to_categorical
-import os
+
 import cv2
-import numpy as np
-import matplotlib.pyplot as plt
-import argparse
-import time
-from keras.layers import Activation, Conv2D, Dense, Flatten, MaxPooling2D
-from keras.models import Sequential, load_model
-from imutils.video import VideoStream
-from imutils.video import FPS
-import sys
-import csv
+from keras.models import load_model
 from datetime import datetime
 import socket
 import json
 import websocket
 from websocket import create_connection
 import csv
+
+from flask import Flask, request, jsonify
+from werkzeug.utils import secure_filename
+import numpy as np
+import io
+import os
+from keras import backend as K
+
+
+app = Flask(__name__)
+model = None
 
 tcpsend=False
 address = ('localhost', 12345)
@@ -40,7 +40,8 @@ h5File='./bin/my_model-n59-epoch17.h5'
 facedetect='./bin/haarcascade_frontalface_alt.xml'
 
 # モデル読み込み
-model = load_model(h5File)
+# global model
+# model = load_model(h5File)
 
 
 # 出力重み
@@ -116,6 +117,19 @@ matTable = np.matrix([
 
 csvmatrixfile='./bin/matrix.csv'
 
+
+UPLOAD_FOLDER = './uploads'
+ALLOWED_EXTENSIONS = set(['png', 'jpg', 'PNG', 'JPG'])
+IMAGE_WIDTH = 640
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+app.config['SECRET_KEY'] = os.urandom(24)
+
+
+def allowed_file(filename):
+    return '.' in filename and \
+        filename.rsplit('.', 1)[1] in ALLOWED_EXTENSIONS
+
+
 # Matrix(csv)の読み込み
 def loadMatrix():
 	with open(csvmatrixfile, 'r') as f:
@@ -183,10 +197,23 @@ def detect_face(image,imageOrg,detect):
             name = detect_who(img,imageOrg,rect[0],rect[1],rect[2],rect[3])['top']
     return image
 
-
+def get_rank_index(my_array):
+    # 上位件数
+    K = 3
+    # ソートはされていない上位k件のインデックス
+    unsorted_max_indices = np.argpartition(-my_array, K)[:K]
+    # 上位k件の値
+    y = my_array[unsorted_max_indices]
+    # 大きい順にソートし、インデックスを取得
+    indices = np.argsort(-y)
+    # 類似度上位k件のインデックス
+    max_k_indices = unsorted_max_indices[indices]
+    return max_k_indices
 
 def detect_who(img,image,x,y,w,h):
 #    print([x,y,w,h])
+    model = load_model(h5File)
+
     logdate = datetime.now()
     strDate = logdate.strftime("%Y%m%d_%H%M%S")
     ImageFile=targetpath+strDate+'.'+targetexp
@@ -194,13 +221,22 @@ def detect_who(img,image,x,y,w,h):
     cv2.imwrite(ImageFile,image)
     #予測
     name=""
+    # K.clear_session()
     nameNumLabel=model.predict(img)[0]
+    # 上位のindexを取得する
+    rank_index = get_rank_index(nameNumLabel)
 
     matRecog = nameNumLabel
     i=0
     for w in weights:
-        matRecog[i] *= w
+        if i in rank_index:
+            matRecog[i] *= w
+        else:
+            matRecog[i] *= 0
         i+=1
+    # 正規化(sum(matRecog)=1)
+    matRecog /= sum(matRecog)
+#    print(matRecog)
     dream = np.dot(matRecog, matTable).tolist()[0]
 #    print(dream.tolist())
 
@@ -250,98 +286,132 @@ def predict(imageOrg):
 	return detect_who(imageExpand,imageOrg,0,0,64,64)
 
 
+@app.route('/facedetect', methods=['POST'])
+def facedetect():
+	output = {
+		'status': 'NG'
+	}
+	K.clear_session()
+	# get image data from RPi by cv2.imread
+	img_file = request.files['img_file']
+
+	# 変なファイル弾き
+	if img_file and allowed_file(img_file.filename):
+		filename = secure_filename(img_file.filename)
+	else:
+		return ''' <p>許可されていない拡張子です</p> '''
+
+	# BytesIOで読み込んでOpenCVで扱える型にする
+	f = img_file.stream.read()
+	bin_data = io.BytesIO(f)
+	file_bytes = np.asarray(bytearray(bin_data.read()), dtype=np.uint8)
+	img = cv2.imdecode(file_bytes, cv2.IMREAD_COLOR)
+	img = cv2.resize(img, (64, 64))
+
+	# ニューラルネットによる推論結果を取得 ##############
+	predict_result = predict(img)
+	output['status'] = 'OK'
+	output['result'] = predict_result
+
+	return jsonify(output)
+
+
 if __name__ == '__main__': #pyを実行すると以下が実行される（モジュールとして読み込んだ場合は実行されない）
-	argv = sys.argv
-	argc = len(argv)
-	if (argc > 3):
-	    #引数がちゃんとあるかチェック
-	    #正しくなければメッセージを出力して終了
-	    print('Usage: python3 %s [h5File] [imageFile]' % argv[0])
-	    print('Example: python3  %s ./bin/my_model-n19-epoch25.h5 ./target_image/20180929_064525.png' % argv[0])
-	    quit()
+	# app.run(port=50100, debug=False)
+	app.run(host='0.0.0.0', port=50100, debug=False)
 
-	if (argc >= 2):
-	    h5File=argv[1]
-	model = load_model(h5File)
 
-	JPGFile=''
-	if (argc >= 3):
-	    JPGFile=argv[2]
-
-	# 画像指定があれば、その画像で検出して終了
-	if JPGFile!='':
-		image=cv2.imread(JPGFile)
-		image_for_result = image.copy()
-
-		if image is None:
-			print("Not open:")
-			quit()
-		b,g,r = cv2.split(image)
-		image = cv2.merge([r,g,b])
-		whoImage=detect_face(image,image_for_result,True)
-		quit()
-
-	# open a pointer to the video stream thread and allow the buffer to
-	# start to fill, then start the FPS counter
-	print("[INFO] starting the video stream and FPS counter...")
-	vs = VideoStream(0).start()
-	time.sleep(1)
-	fps = FPS()
-	fps.start()
-
-	# loop over frames from the video file stream
-	det=False
-	while True:
-		try:
-			key = cv2.waitKey(1) & 0xFF
-
-			# if the `q` key was pressed, break from the loop
-			if key == ord("q"):
-				break
-
-			det=False
-			if key == ord("c"):
-				det=True
-
-			# grab the frame from the threaded video stream
-			# make a copy of the frame and resize it for display/video purposes
-			frame = vs.read()
-			image_for_result = frame.copy()
-			# flip
-			image_for_result = cv2.flip(image_for_result, 1)
-
-			# detect
-			b,g,r = cv2.split(image_for_result)
-			image = cv2.merge([r,g,b])
-			whoImage=detect_face(image,image_for_result,det)
-
-			r,g,b = cv2.split(whoImage)
-			whoImage = cv2.merge([b,g,r])
-
-			cv2.imshow("Output", whoImage)
-
-			# update the FPS counter
-			fps.update()
-		
-		# if "ctrl+c" is pressed in the terminal, break from the loop
-		except KeyboardInterrupt:
-			break
-
-		# if there's a problem reading a frame, break gracefully
-		except AttributeError:
-			break
-
-	# stop the FPS counter timer
-	fps.stop()
-
-	# destroy all windows if we are displaying them
-	cv2.destroyAllWindows()
-
-	# stop the video stream
-	vs.stop()
-
-	# display FPS information
-	print("[INFO] elapsed time: {:.2f}".format(fps.elapsed()))
-	print("[INFO] approx. FPS: {:.2f}".format(fps.fps()))
+	# argv = sys.argv
+	# argc = len(argv)
+	# if (argc > 3):
+	#     #引数がちゃんとあるかチェック
+	#     #正しくなければメッセージを出力して終了
+	#     print('Usage: python3 %s [h5File] [imageFile]' % argv[0])
+	#     print('Example: python3  %s ./bin/my_model-n19-epoch25.h5 ./target_image/20180929_064525.png' % argv[0])
+	#     quit()
+	#
+	# if (argc >= 2):
+	#     h5File=argv[1]
+	# model = load_model(h5File)
+	#
+	# JPGFile=''
+	# if (argc >= 3):
+	#     JPGFile=argv[2]
+	#
+	# # 画像指定があれば、その画像で検出して終了
+	# if JPGFile!='':
+	# 	image=cv2.imread(JPGFile)
+	# 	image_for_result = image.copy()
+	#
+	# 	if image is None:
+	# 		print("Not open:")
+	# 		quit()
+	# 	b,g,r = cv2.split(image)
+	# 	image = cv2.merge([r,g,b])
+	# 	whoImage=detect_face(image,image_for_result,True)
+	# 	quit()
+	#
+	# # open a pointer to the video stream thread and allow the buffer to
+	# # start to fill, then start the FPS counter
+	# print("[INFO] starting the video stream and FPS counter...")
+	# vs = VideoStream(0).start()
+	# time.sleep(1)
+	# fps = FPS()
+	# fps.start()
+	#
+	# # loop over frames from the video file stream
+	# det=False
+	# while True:
+	# 	try:
+	# 		key = cv2.waitKey(1) & 0xFF
+	#
+	# 		# if the `q` key was pressed, break from the loop
+	# 		if key == ord("q"):
+	# 			break
+	#
+	# 		det=False
+	# 		if key == ord("c"):
+	# 			det=True
+	#
+	# 		# grab the frame from the threaded video stream
+	# 		# make a copy of the frame and resize it for display/video purposes
+	# 		frame = vs.read()
+	# 		image_for_result = frame.copy()
+	# 		# flip
+	# 		image_for_result = cv2.flip(image_for_result, 1)
+	#
+	# 		# detect
+	# 		b,g,r = cv2.split(image_for_result)
+	# 		image = cv2.merge([r,g,b])
+	# 		whoImage=detect_face(image,image_for_result,det)
+	#
+	# 		r,g,b = cv2.split(whoImage)
+	# 		whoImage = cv2.merge([b,g,r])
+	#
+	# 		cv2.imshow("Output", whoImage)
+	#
+	# 		# update the FPS counter
+	# 		fps.update()
+	#
+	# 	# if "ctrl+c" is pressed in the terminal, break from the loop
+	# 	except KeyboardInterrupt:
+	# 		break
+	#
+	# 	# if there's a problem reading a frame, break gracefully
+	# 	except AttributeError:
+	# 		break
+	#
+	# # stop the FPS counter timer
+	# fps.stop()
+	#
+	# # destroy all windows if we are displaying them
+	# cv2.destroyAllWindows()
+	#
+	# # stop the video stream
+	# vs.stop()
+	#
+	# # display FPS information
+	# print("[INFO] elapsed time: {:.2f}".format(fps.elapsed()))
+	# print("[INFO] approx. FPS: {:.2f}".format(fps.fps()))
 
 
