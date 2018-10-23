@@ -10,13 +10,16 @@ from matplotlib.path import Path
 from matplotlib.spines import Spine
 from matplotlib.projections.polar import PolarAxes
 from matplotlib.projections import register_projection
-from matplotlib import rcParams
+from matplotlib import rc
 
 BAR_IMG = 'bar.png'
 RADAR_IMG = 'radar.png'
-GRAPH_SIZE = (6, 6)
+GRAPH_SIZE = (10, 10)
 
-# rcParams['font.family'] = 'ipagp.tttf'
+font = {
+	'family': 'AppleGothic'
+}
+rc('font', **font)
 
 # fp = FontProperties(fname=r'/Users/iwasa/font/IPAfont00303/ipag.ttf')
 
@@ -157,7 +160,7 @@ def create_radarchart(dream_data):
 	#  chartの範囲
 	ax.set_ylim(0, 1)
 	# Grid線の位置の指定
-	# fig, ax.set_rgrids([0.2, 0.4, 0.6, 0.8])
+	fig, ax.set_rgrids([])
 
 	fig, ax.set_title(Title, weight='bold', size='medium', position=(0.5, 1.1),
 	horizontalalignment='center', verticalalignment='center')
@@ -169,6 +172,7 @@ def create_radarchart(dream_data):
 
 	# 標準のグリッド線は円形なので消す（放射方向だけ残す）
 	ax.yaxis.grid(False)
+
 	# 別のグリッドを書く
 	ax.plot(theta, [1]*N, 'k-', marker=None, linewidth=0.5, alpha=0.5)
 	ax.plot(theta, [2]*N, 'k-', marker=None, linewidth=0.5, alpha=0.5)
