@@ -47,6 +47,9 @@ facedetect = './bin/haarcascade_frontalface_alt.xml'
 # 出力重み
 weights = []
 
+# job
+jobs = []
+
 # グラフ表示ラベル
 labels = ['1デンソー社員', '2小学校教師', '3高校教師', '4アナウンサー', '5美容師', '6演劇(脚本)', '7演劇(役者)', '8演劇(役者)', '9演劇(役者)', '10演劇(役者)',
           '11デンソー社員', '12ケーキ屋', '13デザイナー', '14テニスプレイヤ', '15テニスプレイヤ', '16ケーキ屋', '17デザイナー', '18医師', '19デンソー社員', '20看護師',
@@ -147,6 +150,7 @@ def loadMatrix():
 			matTable[i, 2] = float(row[2])
 			weights.append(float(row[3]))
 			labels[i] = row[4].strip()
+			jobs.append(row[5].strip())
 			i += 1
 
 
@@ -159,7 +163,7 @@ loadMatrix()
 # print(matTable)
 # print(labels)
 # print(weights)
-
+# print(jobs)
 
 def detect_face(image, imageOrg, detect):
 	#    print(image.shape)
@@ -254,7 +258,7 @@ def detect_who(img, image, x, y, w, h):
 	list_dict = []
 	n = 0
 	for i in result['list']:
-		list_dict.append({'no': labels[n], 'accuracy': i})
+		list_dict.append({'no': labels[n], 'accuracy': i, 'job': jobs[n]})
 		n += 1
 	result['rank'] = sorted(list_dict, key=lambda x: x['accuracy'], reverse=True)
 	result['top'] = result['rank'][0]['no']
