@@ -13,8 +13,14 @@ image = cv2.resize(image, (64, 64))
 
 result = inference.predict(image)
 
-print(result)
+rank = result['rank']
 
+i = 0
+for r in rank:
+	i += 1
+	print('{} : {}'.format(r['no'], r['accuracy']))
+
+print(i)
 # i = 1
 # for r in result['rank']:
 # 	print('{} : {} : {}'.format(str(i), r['no'], str(r['accuracy'])))

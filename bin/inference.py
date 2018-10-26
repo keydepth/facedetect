@@ -128,6 +128,34 @@ app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['SECRET_KEY'] = os.urandom(24)
 
 
+# load job_category
+with open('bin/job_category.csv', 'r') as f:
+	data = f.readlines()
+	job_category = [j.split(',')[2] for j in data]
+	job_category = set(job_category)
+	job_category_index = {j: [] for j in job_category}
+
+	for d in data:
+		d = d.split(',')
+		job_category_index[d[2]] += [''.join([d[0], d[1]])]
+
+
+def reranking(rank_list):
+	rerank_list = []
+	job_category = job_category_index
+	job_category_items = [j for j in job_category.items()]
+	# print(type(job_category_items))
+
+	for r in rank_list:
+		for j in job_category_items:
+			if r['no'] in j[1]:
+				rerank_list.append(r)
+				job_category_items.remove(j)
+				break
+
+	return rerank_list
+
+
 def allowed_file(filename):
 	return '.' in filename and \
 	       filename.rsplit('.', 1)[1] in ALLOWED_EXTENSIONS
@@ -290,7 +318,8 @@ def predict(imageOrg):
 	b, g, r = cv2.split(imageOrg)
 	imageRGB = cv2.merge([r, g, b])
 	imageExpand = np.expand_dims(imageRGB, axis=0)
-	return detect_who(imageExpand, imageOrg, 0, 0, 64, 64)
+	result = detect_who(imageExpand, imageOrg, 0, 0, 64, 64)
+	return result
 
 
 @app.route('/facedetect', methods=['POST'])
@@ -317,6 +346,7 @@ def facedetect():
 
 	# ニューラルネットによる推論結果を取得 ##############
 	predict_result = predict(img)
+	predict_result['rank'] = reranking(predict_result['rank'])
 	output['status'] = 'OK'
 	output['result'] = predict_result
 
