@@ -17,6 +17,7 @@ import numpy as np
 import io
 import os
 from keras import backend as K
+import copy
 
 app = Flask(__name__)
 model = None
@@ -233,7 +234,7 @@ def detect_who(img, image, x, y, w, h):
 	# 上位のindexを取得する
 	rank_index = get_rank_index(nameNumLabel)
 
-	matRecog = nameNumLabel
+	matRecog = copy.deepcopy(nameNumLabel)
 	i = 0
 	for w in weights:
 		if i in rank_index:
