@@ -175,9 +175,9 @@ def detect_who(img, image, x, y, w, h):
 
 	matRecog = copy.deepcopy(nameNumLabel)
 	i = 0
-	for w in weights:
+	for weight in weights:
 		if i in rank_index:
-			matRecog[i] *= w
+			matRecog[i] *= weight
 		else:
 			matRecog[i] *= 0
 		i += 1
