@@ -3,6 +3,7 @@
 
 
 import requests
+import json
 import cv2
 
 
@@ -17,4 +18,11 @@ with open('./test_data/0.jpg', 'rb') as f:
 
 	res = requests.post('http://localhost:50100/facedetect', files=files)
 
-print(res.text)
+res_data = res.json()
+rank = res_data['result']['rank']
+
+i = 0
+for r in rank:
+	print('{} : {}'.format(r['no'], r['accuracy']))
+	i += 1
+print(i)
