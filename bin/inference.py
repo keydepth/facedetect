@@ -17,6 +17,7 @@ import numpy as np
 import io
 import os
 from keras import backend as K
+import copy
 
 app = Flask(__name__)
 model = None
@@ -46,78 +47,15 @@ facedetect = './bin/haarcascade_frontalface_alt.xml'
 # 出力重み
 weights = []
 
+# job
+jobs = []
+
 # グラフ表示ラベル
-labels = ['1デンソー社員', '2小学校教師', '3高校教師', '4アナウンサー', '5美容師', '6演劇(脚本)', '7演劇(役者)', '8演劇(役者)', '9演劇(役者)', '10演劇(役者)',
-          '11デンソー社員', '12ケーキ屋', '13デザイナー', '14テニスプレイヤ', '15テニスプレイヤ', '16ケーキ屋', '17デザイナー', '18医師', '19デンソー社員', '20看護師',
-          '21臨床検査', '22臨床検査', '23医師', '24看護師', '25看護師', '26放射線技師', '27薬剤師', '28臨床検査技師', '29放射線技師', '30臨床検査技師', '31薬剤師',
-          '32看護師', '33放射線技師', '34放射線技師', '35薬剤師', '36放射線技師', '37臨床検査技師', '38看護師', '39看護師', '40看護師', '41看護師', '42臨床検査技師',
-          '43社長', '44警察官', '45トヨタ社員', '46アイシン社員', '47アイシン社員', '48政治家', '49プロ野球選手', '50プロ野球選手', '51プロ野球選手', '52プロサッカー選手',
-          '53プロサッカー選手', '54プロサッカー選手', '55ユーチューバー', '56ユーチューバー', '57トヨタ社員', '58ゲームクリエータ', '59ケーキ屋']
+labels = []
 
 # 学習データのパラメータテーブル
 # 独自性, 有名度, 財力
-matTable = np.matrix([
-	[0.5, 0.5, 0.5],  # 1デンソー社員
-	[0.5, 0.5, 0.5],  # 2小学校教師
-	[0.5, 0.5, 0.5],  # 3高校教師
-	[0.5, 0.5, 0.5],  # 4アナウンサー
-	[0.5, 0.5, 0.5],  # 5美容師
-	[1.0, 0.5, 0.5],  # 6演劇(脚本)
-	[0.5, 0.5, 0.5],  # 7演劇(役者)
-	[0.5, 0.5, 0.5],  # 8演劇(役者)
-	[0.5, 0.5, 0.5],  # 9演劇(役者)
-	[0.5, 0.5, 0.5],  # 10演劇(役者)
-	[0.5, 0.5, 0.5],  # 11デンソー社員
-	[0.5, 0.5, 0.5],  # 12ケーキ屋
-	[0.5, 0.5, 0.5],  # 13デザイナー
-	[1.0, 1.0, 1.0],  # 14テニスプレイヤ
-	[1.0, 1.0, 1.0],  # 15テニスプレイヤ
-	[0.5, 0.5, 0.5],  # 16ケーキ屋
-	[0.5, 0.5, 0.5],  # 17デザイナー
-	[0.5, 0.5, 0.5],  # 18医師
-	[0.5, 0.5, 0.5],  # 19デンソー社員
-	[0.5, 0.5, 0.8],  # 20看護師
-	[0.5, 0.5, 0.8],  # 21臨床検査
-	[0.5, 0.5, 0.8],  # 22臨床検査
-	[0.5, 0.5, 0.9],  # 23医師
-	[0.5, 0.5, 0.8],  # 24看護師
-	[0.5, 0.5, 0.8],  # 25看護師
-	[0.5, 0.5, 0.8],  # 26放射線技師
-	[0.5, 0.5, 0.8],  # 27薬剤師
-	[0.5, 0.5, 0.8],  # 28臨床検査技師
-	[0.5, 0.5, 0.8],  # 29放射線技師
-	[0.5, 0.5, 0.8],  # 30臨床検査技師
-	[0.5, 0.5, 0.8],  # 31薬剤師
-	[0.5, 0.5, 0.8],  # 32看護師
-	[0.5, 0.5, 0.8],  # 33放射線技師
-	[0.5, 0.5, 0.8],  # 34放射線技師
-	[0.5, 0.5, 0.8],  # 35薬剤師
-	[0.5, 0.5, 0.8],  # 36放射線技師
-	[0.5, 0.5, 0.8],  # 37臨床検査技師
-	[0.5, 0.5, 0.8],  # 38看護師
-	[0.5, 0.5, 0.8],  # 39看護師
-	[0.5, 0.5, 0.8],  # 40看護師
-	[0.5, 0.5, 0.8],  # 41看護師
-	[0.5, 0.5, 0.8],  # 42臨床検査技師
-	[1.0, 0.5, 1.0],  # 43社長
-	[0.5, 0.5, 0.5],  # 44警察官
-	[0.5, 0.5, 0.6],  # 45トヨタ社員
-	[0.5, 0.5, 0.5],  # 46アイシン社員
-	[0.5, 0.5, 0.5],  # 47アイシン社員
-	[0.8, 0.8, 0.7],  # 48政治家
-	[1.0, 1.0, 1.0],  # 49プロ野球選手
-	[1.0, 1.0, 1.0],  # 50プロ野球選手
-	[1.0, 1.0, 1.0],  # 51プロ野球選手
-	[1.0, 1.0, 1.0],  # 52プロサッカー選手
-	[1.0, 1.0, 1.0],  # 53プロサッカー選手
-	[1.0, 1.0, 1.0],  # 54プロサッカー選手
-	[1.0, 1.0, 1.0],  # 55ユーチューバー
-	[1.0, 1.0, 1.0],  # 56ユーチューバー
-	[1.0, 1.0, 1.0],  # 57トヨタ社員
-	[1.0, 1.0, 1.0],  # 56ゲームクリエータ
-	[1.0, 1.0, 1.0]  # 56ケーキ屋
-
-])
+matTable = np.matrix([])
 
 csvmatrixfile = './bin/matrix.csv'
 
@@ -163,18 +101,20 @@ def allowed_file(filename):
 
 # Matrix(csv)の読み込み
 def loadMatrix():
+	global matTable
 	with open(csvmatrixfile, 'r') as f:
 		reader = csv.reader(f)
 		header = next(reader)  # ヘッダーを読み飛ばしたい時
 		i = 0
+		listMat = []
 		for row in reader:
 			#			print(row)          # 1行づつ取得できる
-			matTable[i, 0] = float(row[0])
-			matTable[i, 1] = float(row[1])
-			matTable[i, 2] = float(row[2])
+			listMat.append([ float(row[0]), float(row[1]), float(row[2]) ])
 			weights.append(float(row[3]))
-			labels[i] = row[4].strip()
+			labels.append(row[4].strip())
+			jobs.append(row[5].strip())
 			i += 1
+		matTable = np.matrix(listMat)
 
 
 # print(matTable)
@@ -186,7 +126,7 @@ loadMatrix()
 # print(matTable)
 # print(labels)
 # print(weights)
-
+# print(jobs)
 
 def detect_face(image, imageOrg, detect):
 	#    print(image.shape)
@@ -261,11 +201,11 @@ def detect_who(img, image, x, y, w, h):
 	# 上位のindexを取得する
 	rank_index = get_rank_index(nameNumLabel)
 
-	matRecog = nameNumLabel
+	matRecog = copy.deepcopy(nameNumLabel)
 	i = 0
-	for w in weights:
+	for weight in weights:
 		if i in rank_index:
-			matRecog[i] *= w
+			matRecog[i] *= weight
 		else:
 			matRecog[i] *= 0
 		i += 1
@@ -281,7 +221,7 @@ def detect_who(img, image, x, y, w, h):
 	list_dict = []
 	n = 0
 	for i in result['list']:
-		list_dict.append({'no': labels[n], 'accuracy': i})
+		list_dict.append({'no': labels[n], 'accuracy': i, 'job': jobs[n]})
 		n += 1
 	result['rank'] = sorted(list_dict, key=lambda x: x['accuracy'], reverse=True)
 	result['top'] = result['rank'][0]['no']
@@ -293,6 +233,7 @@ def detect_who(img, image, x, y, w, h):
 		f.write(logdate.strftime("%Y/%m/%d %H:%M:%S, "))
 		f.write(ImageFile + ', ')
 		f.write(str(x) + ', ' + str(y) + ', ' + str(w) + ', ' + str(h) + ', ')
+		f.write(result['rank'][0]['no'] + ', ' + result['rank'][1]['no'] + ', ' + result['rank'][2]['no'] + ', ' )
 		writer.writerow(nameNumLabel.tolist() + dream)
 	if tcpsend == True:
 		#        print('Starting the client at', datetime.now())
