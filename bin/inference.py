@@ -205,6 +205,7 @@ def detect_who(img, image, x, y, w, h):
 		f.write(logdate.strftime("%Y/%m/%d %H:%M:%S, "))
 		f.write(ImageFile + ', ')
 		f.write(str(x) + ', ' + str(y) + ', ' + str(w) + ', ' + str(h) + ', ')
+		f.write(result['rank'][0]['no'] + ', ' + result['rank'][1]['no'] + ', ' + result['rank'][2]['no'] + ', ' )
 		writer.writerow(nameNumLabel.tolist() + dream)
 	if tcpsend == True:
 		#        print('Starting the client at', datetime.now())
