@@ -67,15 +67,16 @@ app.config['SECRET_KEY'] = os.urandom(24)
 
 
 # load job_category
-with open('bin/job_category.csv', 'r') as f:
+with open('bin/matrix.csv', 'r') as f:
 	data = f.readlines()
-	job_category = [j.split(',')[2] for j in data]
+	job_category = [j.split(',')[6] for j in data]
 	job_category = set(job_category)
 	job_category_index = {j: [] for j in job_category}
 
 	for d in data:
 		d = d.split(',')
-		job_category_index[d[2]] += [''.join([d[0], d[1]])]
+		job_category_index[d[6]] += [d[4]]
+print(job_category_index)
 
 
 def reranking(rank_list):

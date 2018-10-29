@@ -4,6 +4,7 @@
 
 import csv
 
+
 def create(result):
 	rank = result['rank']
 

@@ -7,7 +7,7 @@ import io
 import os
 
 import inference
-import create_graph
+# import create_graph
 from flask import Flask, request, jsonify
 from werkzeug.utils import secure_filename
 
