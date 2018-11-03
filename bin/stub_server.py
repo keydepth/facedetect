@@ -6,6 +6,7 @@ import requests
 import json
 import cv2
 import create_csv
+import glob
 # import create_graph
 
 
@@ -14,6 +15,8 @@ import create_csv
 
 # image = cv2.imread('./test_data/0.jpg')
 # image = cv2.resize(image, (64, 64))
+
+path_list = glob.glob('./test_data/miss_universe/miss universe Amelia Vega/*.png')
 
 with open('./test_data/00.11.jpg.png', 'rb') as f:
 	files = {'img_file': ('./test_data/00.0.jpg.png', f, 'image/png')}

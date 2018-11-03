@@ -66,6 +66,13 @@ app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['SECRET_KEY'] = os.urandom(24)
 
 
+# load alpha array
+with open('bin/alpha_array.csv', 'r') as f:
+	reader = csv.reader(f)
+	alpha_array = [float(r[0]) for r in reader]
+	# print(alpha_array)
+
+
 # load job_category
 with open('bin/matrix.csv', 'r') as f:
 	data = f.readlines()
@@ -76,7 +83,7 @@ with open('bin/matrix.csv', 'r') as f:
 	for d in data:
 		d = d.split(',')
 		job_category_index[d[6]] += [d[4]]
-print(job_category_index)
+# print(job_category_index)
 
 
 def reranking(rank_list):
@@ -199,6 +206,10 @@ def detect_who(img, image, x, y, w, h):
 	name = ""
 	# K.clear_session()
 	nameNumLabel = model.predict(img)[0]
+
+	# 重み係数(alpha_array)をかける
+	nameNumLabel = nameNumLabel * alpha_array
+
 	# 上位のindexを取得する
 	rank_index = get_rank_index(nameNumLabel)
 
@@ -257,6 +268,7 @@ def detect_who(img, image, x, y, w, h):
 
 # image:imreadした画像
 def predict(imageOrg):
+	K.clear_session()
 	b, g, r = cv2.split(imageOrg)
 	imageRGB = cv2.merge([r, g, b])
 	imageExpand = np.expand_dims(imageRGB, axis=0)
@@ -269,7 +281,7 @@ def facedetect():
 	output = {
 		'status': 'NG'
 	}
-	K.clear_session()
+	# K.clear_session()
 	# get image data from RPi by cv2.imread
 	img_file = request.files['img_file']
 
